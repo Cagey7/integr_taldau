@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000 --settings=integr_taldau.settings.local 
+    volumes:
+      - .:/code
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: "integr_taldau_local"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "admin"
+    ports:
+      - "5432:5432"
+    # volumes:
+    #   - C:\Program Files\PostgreSQL\14\data:/var/lib/postgresql/data
