@@ -1,19 +1,29 @@
 version: "3.9"
 services:
   web:
+    depends_on:
+      - db
     build: .
+    image: integr_taldau:v1
+    env_file:
+      - .env
     ports:
       - "8000:8000"
-    command: python manage.py runserver 0.0.0.0:8000 --settings=integr_taldau.settings.local 
-    volumes:
-      - .:/code
+    command: sh -c "chmod +x /code/migrate.sh && sh /code/migrate.sh && /code/entrypoint.sh"
   db:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: "integr_taldau_local"
-      POSTGRES_USER: "admin"
-      POSTGRES_PASSWORD: "admin"
-    ports:
+    image: postgres
+    env_file:
+      - .env
+    # environment:
+    #   - POSTGRES_DB=integr_taldau_production
+    #   - POSTGRES_USER=postgres
+    #   - POSTGRES_PASSWORD=123456
+    #   - POSTGRES_HOST=postgres_db
+    #   - POSTGRES_PORT=5432
+    expose:
       - "5432:5432"
-    # volumes:
-    #   - C:\Program Files\PostgreSQL\14\data:/var/lib/postgresql/data
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

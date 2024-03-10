@@ -1,3 +1,5 @@
 .venv
 .git
 .gitignore
+venv/
+db.sqlite3
