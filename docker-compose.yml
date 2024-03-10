@@ -4,26 +4,21 @@ services:
     depends_on:
       - db
     build: .
-    image: integr_taldau:v1
     env_file:
       - .env
     ports:
-      - "8000:8000"
-    command: sh -c "chmod +x /code/migrate.sh && sh /code/migrate.sh && /code/entrypoint.sh"
-  db:
-    image: postgres
-    env_file:
-      - .env
-    # environment:
-    #   - POSTGRES_DB=integr_taldau_production
-    #   - POSTGRES_USER=postgres
-    #   - POSTGRES_PASSWORD=123456
-    #   - POSTGRES_HOST=postgres_db
-    #   - POSTGRES_PORT=5432
-    expose:
-      - "5432:5432"
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
+      - .:/code
+    environment:
+      - ENV=DEV
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: taldau_development
+      POSTGRES_USER: POSTGRES_USER:-postgres
+      POSTGRES_PASSWORD: "123456"
+    ports:
+      - "5432:5432"
+    # volumes:
+    #   - ./postgres_data:/var/lib/postgresql/data
