@@ -10,7 +10,7 @@ if [ "$ENV" = 'DEV' ]; then
     pip install -r requirements/development.txt
     python manage.py migrate --noinput --settings=integr_taldau.settings.development
     python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --settings=integr_taldau.settings.development || true
-    python manage.py runserver 0.0.0.0:$APP_PORT --settings=integr_taldau.settings.development
+    python manage.py runserver 0.0.0.0:8000 --settings=integr_taldau.settings.development
 else
     echo "Running Production Server"
     pip install -r requirements/production.txt

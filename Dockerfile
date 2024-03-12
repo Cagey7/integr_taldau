@@ -8,8 +8,4 @@ WORKDIR /code
 
 COPY . .
 
-EXPOSE 8000
-
-# RUN chmod +x /code/entrypoint.sh
-
 CMD [ "/code/entrypoint.sh" ]

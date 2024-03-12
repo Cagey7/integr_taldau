@@ -3,3 +3,4 @@
 .gitignore
 venv/
 db.sqlite3
+.env.example
