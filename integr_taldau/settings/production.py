@@ -1,7 +1,6 @@
 from .base import *
 import os
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 DEBUG = False
 ALLOWED_HOSTS = ["*"]
@@ -16,3 +15,5 @@ DATABASES = {
         "PORT": os.environ.get("POSTGRES_PORT"),
     }
 }
+
+STATIC_ROOT = f"/var/www/{os.environ.get('APP_HOST')}/static/"

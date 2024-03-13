@@ -11,7 +11,13 @@ if [ "$ENV" = 'DEV' ]; then
     python manage.py migrate --noinput --settings=integr_taldau.settings.development
     python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --settings=integr_taldau.settings.development || true
     python manage.py runserver 0.0.0.0:8000 --settings=integr_taldau.settings.development
-else
+elif [ "$ENV" = 'UNIT' ]; then
+    echo "Running Unit Tests"
+    pip install -r requirements/test.txt
+    python manage.py migrate --noinput --settings=integr_taldau.settings.test
+    python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --settings=integr_taldau.settings.test || true
+    python manage.py test --settings=integr_taldau.settings.test
+elif [ "$ENV" = 'PROD' ]; then
     echo "Running Production Server"
     pip install -r requirements/production.txt
     python manage.py migrate --noinput --settings=integr_taldau.settings.production
