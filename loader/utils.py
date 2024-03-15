@@ -1,7 +1,10 @@
 import requests
+import re
+
+taldau_url = "https://taldau.stat.gov.kz/ru/"
 
 def get_all_catalogs():
-    url_get_catalogs = f"https://taldau.stat.gov.kz/ru/Search/GetCatalogNodes"
+    url_get_catalogs = f"{taldau_url}Search/GetCatalogNodes"
     response = requests.get(url_get_catalogs)
     if response.status_code == 200:
         catalogs = response.json()
@@ -31,7 +34,7 @@ def get_node_chapter_data(data, parent_id=None):
 
 
 def get_all_indices(chapter_ids, period_ids):
-    url_get_leaf = f"https://taldau.stat.gov.kz/ru/Search/getSearchPageGridData"
+    url_get_leaf = f"{taldau_url}Search/getSearchPageGridData"
     payload = {
         "pid": -1,
         "tree": chapter_ids,
@@ -48,9 +51,50 @@ def get_all_indices(chapter_ids, period_ids):
 
 
 def get_all_periods():
-    url_get_periods = f"https://taldau.stat.gov.kz/ru/Search/GetPeriodNodes"
+    url_get_periods = f"{taldau_url}Search/GetPeriodNodes"
     response = requests.get(url_get_periods)
     if response.status_code == 200:
         return response.json()
     else:
         return {"status": "error", "error_code": response.status_code}
+
+
+def get_index_attributes(index_id):
+    url_get_name = f"{taldau_url}Api/GetIndexAttributes?indexId={index_id}"     
+    response = requests.get(url_get_name)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {"status": "error", "error_code": response.status_code}
+
+
+def get_index_periods(index_id):
+    url_get_period = f"{taldau_url}/Api/GetPeriodList?indexId={index_id}"
+    response = requests.get(url_get_period)
+    if response.status_code == 200:
+        return response.json()
+    else: 
+        return {"status": "error", "error_code": response.status_code}
+
+
+def get_index_segment(index_id, period_id):
+    url_get_segment = f"{taldau_url}/Api/GetSegmentList?indexId={index_id}&periodId={period_id}"
+    response = requests.get(url_get_segment)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {"status": "error", "error_code": response.status_code}
+
+
+def convert_to_list(input_str):
+    try:
+        splitter = re.findall(r"[\+\,\/]", input_str)[0]
+        try:
+            return [int(num.strip()) for num in input_str.split(splitter)]
+        except:
+            return [num.strip() for num in input_str.split(splitter)]
+    except:
+        try:
+            return [int(input_str)]
+        except:
+            return [input_str]
