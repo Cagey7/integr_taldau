@@ -73,6 +73,7 @@ class AddOneIndexInfo(APIView):
             chapter_id = int(index_info["path"].split("/")[-1])
             chapter = Chapter.objects.get(id=chapter_id)
             index.chapter = chapter
+            index.measure = index_info["measureName"]
             index.save()
             
             time.sleep(2)
@@ -161,6 +162,5 @@ class InsertIndexData(APIView):
                                 val["value"] = -1
                             data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
                             insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
-                    print("-1")
 
         return Response({"status": "success"}, status=status.HTTP_200_OK)

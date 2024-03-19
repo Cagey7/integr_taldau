@@ -2,14 +2,6 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 
-class TimeStampedModel(models.Model):
-    created = models.DateTimeField(auto_now_add=True, verbose_name="Время публикации")
-    modified = models.DateTimeField(auto_now=True, verbose_name="Время изменения")
-
-    class Meta:
-        abstract = True
-
-
 class Chapter(models.Model):
     name = models.CharField(max_length=511, verbose_name="Название раздела")
     parent = models.ForeignKey("self", null=True, on_delete=models.PROTECT)
@@ -23,6 +15,7 @@ class Chapter(models.Model):
 
 class Index(models.Model):
     name = models.CharField(max_length=511, verbose_name="Название показателя")
+    measure = models.CharField(max_length=255, null=True, verbose_name="Единица измерения")
     chapter = models.ForeignKey("Chapter", null=True, on_delete=models.PROTECT, verbose_name="Раздел")
     
     class Meta:

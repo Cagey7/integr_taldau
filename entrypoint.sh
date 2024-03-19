@@ -22,5 +22,5 @@ elif [ "$ENV" = 'PROD' ]; then
     pip install -r requirements/production.txt
     python manage.py migrate --noinput --settings=integr_taldau.settings.production
     python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --settings=integr_taldau.settings.production || true
-    gunicorn --worker-tmp-dir /dev/shm integr_taldau.wsgi:application --bind "0.0.0.0:${APP_PORT}"
+    gunicorn --worker-tmp-dir /dev/shm --workers 3 --timeout 10000 integr_taldau.wsgi:application --bind "0.0.0.0:${APP_PORT}"
 fi
