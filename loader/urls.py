@@ -8,4 +8,5 @@ urlpatterns = [
     path("insert-all-indices/", views.InsertAllIndices.as_view()),
     path("add-one-index-info/", views.AddOneIndexInfo.as_view()),
     path("insert-index-data/", views.InsertIndexData.as_view()),
+    path("insert-index-data-param/", views.InsertIndexDataParam.as_view()),
 ]
