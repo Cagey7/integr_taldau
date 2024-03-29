@@ -105,7 +105,7 @@ def convert_to_list(input_str):
             return [input_str]
 
 
-def create_dic_table(cursor, dic_id):
+def create_dic_table(cursor, dic_id, dic_name):
     create_dic = f"""
     CREATE TABLE IF NOT EXISTS dics_data.d_{dic_id} (
         id INTEGER PRIMARY KEY,
@@ -113,9 +113,13 @@ def create_dic_table(cursor, dic_id):
     );
     """
     cursor.execute(create_dic)
+    
+    table_name = f"dics_data.d_{dic_id}"
+    comment = f"dic_id: {dic_id}, dic_name: {dic_name}"
+    cursor.execute(f"COMMENT ON TABLE {table_name} IS %s", (comment,))
 
 
-def create_index_table(cursor, index_id, period_id, dic_ids):
+def create_index_table(cursor, index_id, period_id, dic_ids, index_name, period_name, dic_names):
     periods_data_table = ""
     rows_data_table = ""
     fk_data_table = ""
@@ -146,6 +150,9 @@ def create_index_table(cursor, index_id, period_id, dic_ids):
     );
     """
     cursor.execute(create_table_query)
+
+    comment = f"index_id: {index_id}, index_name: {index_name}, period_id: {period_id}, period_name: {period_name}, dic_ids: {dic_ids}, dic_names: {dic_names}"
+    cursor.execute(f"COMMENT ON TABLE {index_table_name} IS %s", (comment,))
 
 
 def get_index_dates(index_id, period_id, term_ids, dic_ids):
@@ -249,10 +256,11 @@ def insert_index_data_param(index_dics_data_one):
             period = index_dics_data_one.period
             dates = index_dics_data_one.dates
             dic_ids = dic.dic_ids
+            dic_names = dic.dic_names
             term_ids = dic.term_ids
-            for dic_id in dic_ids:
-                create_dic_table(cursor, dic_id)
-            create_index_table(cursor, index_id, period.id, dic_ids)
+            for dic_id, dic_name in zip(dic_ids, dic_names):
+                create_dic_table(cursor, dic_id, dic_name)
+            create_index_table(cursor, index_id, period.id, dic_ids, index.name, period.name, dic_names)
             term_ids_str = ",".join(map(str, term_ids))
             dic_ids_str = ",".join(map(str, dic_ids))
             time.sleep(2)
