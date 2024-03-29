@@ -3,6 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection, transaction
+from drf_yasg.utils import swagger_auto_schema
+from .serializers import *
 from .models import *
 from .utils import *
 
@@ -53,13 +55,14 @@ class InsertAllIndices(APIView):
         return Response({"status": "success", "new_indices": indices_amount}, status=status.HTTP_201_CREATED)
 
 
+
 class AddOneIndexInfo(APIView):
+    @swagger_auto_schema(request_body=IndexIdSerializer, responses={})
     def post(self, request):
-        index_id = request.data.get("index_id")
+        serializer = IndexIdSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        index_id = serializer.data["index_id"]
         filters = 0
-        
-        if index_id is None:
-            return Response({"status": "error", "error_info": "Не все данные были предоставлены"}, status=status.HTTP_400_BAD_REQUEST)
 
 
         with transaction.atomic():
@@ -88,7 +91,6 @@ class AddOneIndexInfo(APIView):
                 if "status" in segments and segments["status"] == "error":
                     return Response({"status": "error", "error_code": segments["error_code"]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 for segment in segments:
-                    filters += 1
                     dic_ids = convert_to_list(segment["dicId"])
                     dic_names = convert_to_list(segment["names"])
                     term_ids = convert_to_list(segment["termIds"])
@@ -100,16 +102,20 @@ class AddOneIndexInfo(APIView):
                     
                     index_dics = IndexDics.objects.filter(index=index, dics=dics, period=period_obj).first()
                     if not index_dics:
+                        filters += 1
                         index_dics = IndexDics(index=index, dics=dics, period=period_obj, dates=[])
                         index_dics.save()
 
 
-        return Response({"status": "success", "new_filters": filters}, stats=status.HTTP_201_CREATED)
+        return Response({"status": "success", "new_filters": filters}, status=status.HTTP_201_CREATED)
 
 
 class InsertIndexData(APIView):
+    @swagger_auto_schema(request_body=IndexIdSerializer, responses={})
     def post(self, request):
-        index_id = request.data.get("index_id")
+        serializer = IndexIdSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        index_id = serializer.data["index_id"]
         index = Index.objects.get(id=index_id)
         index_insert_data = IndexDics.objects.filter(index=index)
         info = []
@@ -121,10 +127,13 @@ class InsertIndexData(APIView):
 
 
 class InsertIndexDataParam(APIView):
+    @swagger_auto_schema(request_body=IndexInfoSerializer, responses={})
     def post(self, request):
-        index_id = request.data.get("index_id")
-        period_id = request.data.get("period_id")
-        dic_ids = request.data.get("dic_ids")
+        serializer = IndexInfoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        index_id = serializer.data["index_id"]
+        period_id = serializer.data["period_id"]
+        dic_ids = serializer.data["dic_ids"]
         index = Index.objects.get(id=index_id)
         period = IndexPeriod.objects.get(id=period_id)
         dics = Dic.objects.get(dic_ids=dic_ids)
