@@ -13,6 +13,18 @@ class IndexIdSerializer(serializers.Serializer):
         return data
 
 
+class IndexIdFilterSerializer(serializers.Serializer):
+    index_id = serializers.IntegerField()
+    check_filters = serializers.BooleanField(required=False)
+
+    def validate(self, data):
+        try:
+            Index.objects.get(id=data.get("index_id"))
+        except:
+            raise serializers.ValidationError("Не существует показатель с указанным айди")
+        return data
+
+
 class IndexInfoSerializer(serializers.Serializer):
     index_id = serializers.IntegerField()
     period_id = serializers.IntegerField()

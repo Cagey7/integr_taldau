@@ -1,8 +1,6 @@
-import time
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db import connection, transaction
 from drf_yasg.utils import swagger_auto_schema
 from .serializers import *
 from .models import *
@@ -55,59 +53,30 @@ class InsertAllIndices(APIView):
         return Response({"status": "success", "new_indices": indices_amount}, status=status.HTTP_201_CREATED)
 
 
-
 class AddOneIndexInfo(APIView):
-    @swagger_auto_schema(request_body=IndexIdSerializer, responses={})
+    @swagger_auto_schema(request_body=IndexIdFilterSerializer, responses={})
     def post(self, request):
-        serializer = IndexIdSerializer(data=request.data)
+        serializer = IndexIdFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         index_id = serializer.data["index_id"]
-        filters = 0
+        try:
+            check_filters = serializer.data["check_filters"]
+            info = add_one_index_info(index_id, check_filters)
+        except:
+            info = add_one_index_info(index_id)
+
+        return Response({"status": "success", "info": info}, status=status.HTTP_201_CREATED)
 
 
-        with transaction.atomic():
-            index = Index.objects.select_for_update().get(id=index_id)
-            
-            time.sleep(2)
-            index_info = get_index_attributes(index_id)
-            if "status" in index_info and index_info["status"] == "error":
-                return Response({"status": "error", "error_code": index_info["error_code"]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            chapter_id = int(index_info["path"].split("/")[-1])
-            chapter = Chapter.objects.get(id=chapter_id)
-            index.chapter = chapter
-            index.measure = index_info["measureName"]
-            index.save()
-            
-            time.sleep(2)
-            periods = get_index_periods(index_id)
-            if "status" in periods and periods["status"] == "error":
-                return Response({"status": "error", "error_code": periods["error_code"]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            for period in periods:
-                time.sleep(2)
-                period_obj = IndexPeriod.objects.get(id=period["id"])
-                segments = get_index_segment(index_id, period["id"])
-                if "status" in segments and segments["status"] == "error":
-                    return Response({"status": "error", "error_code": segments["error_code"]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                for segment in segments:
-                    dic_ids = convert_to_list(segment["dicId"])
-                    dic_names = convert_to_list(segment["names"])
-                    term_ids = convert_to_list(segment["termIds"])
-                    
-                    dics = Dic.objects.filter(dic_ids=dic_ids).first()
-                    if not dics:
-                        dics = Dic(dic_ids=dic_ids, dic_names=dic_names, term_ids=term_ids)
-                        dics.save()
-                    
-                    index_dics = IndexDics.objects.filter(index=index, dics=dics, period=period_obj).first()
-                    if not index_dics:
-                        filters += 1
-                        index_dics = IndexDics(index=index, dics=dics, period=period_obj, dates=[])
-                        index_dics.save()
-
-
-        return Response({"status": "success", "new_filters": filters}, status=status.HTTP_201_CREATED)
+class AddAllIndexInfo(APIView):
+    def post(self, request):
+        indices = Index.objects.filter(chapter=None)
+        info = []
+        for index in indices:
+            one_info = add_one_index_info(index.id)
+            info.append(one_info)
+        
+        return Response({"status": "success", "info": info}, status=status.HTTP_201_CREATED)
 
 
 class InsertIndexData(APIView):

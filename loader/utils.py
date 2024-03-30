@@ -302,3 +302,52 @@ def insert_index_data_param(index_dics_data_one):
                     insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
     
     return {"index_name": index.name, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
+
+
+def add_one_index_info(index_id, check_filters=False):
+    filters = 0
+    
+    with transaction.atomic():
+        index = Index.objects.select_for_update().get(id=index_id)
+        
+        check_index_dics = IndexDics.objects.filter(index=index).first()
+        if check_index_dics and not check_filters:
+            return {"index_name": index.name, "info": "справочники уже загружены"}
+        
+        time.sleep(2)
+        index_info = get_index_attributes(index_id)
+        if "status" in index_info and index_info["status"] == "error":
+            return {"index_name": index.name, "info": "ошибка талдау", "error_code": index_info["error_code"]}
+        
+        chapter_id = int(index_info["path"].split("/")[-1])
+        chapter = Chapter.objects.get(id=chapter_id)
+        index.chapter = chapter
+        index.measure = index_info["measureName"]
+        index.save()
+        time.sleep(2)
+        periods = get_index_periods(index_id)
+        if "status" in periods and periods["status"] == "error":
+            return {"index_name": index.name, "info": "ошибка талдау", "error_code": periods["error_code"]}
+        
+        for period in periods:
+            time.sleep(2)
+            period_obj = IndexPeriod.objects.get(id=period["id"])
+            segments = get_index_segment(index_id, period["id"])
+            if "status" in segments and segments["status"] == "error":
+                return {"index_name": index.name, "info": "ошибка талдау", "error_code": segments["error_code"]}
+            for segment in segments:
+                dic_ids = convert_to_list(segment["dicId"])
+                dic_names = convert_to_list(segment["names"])
+                term_ids = convert_to_list(segment["termIds"])
+                dics = Dic.objects.filter(dic_ids=dic_ids).first()
+                if not dics:
+                    dics = Dic(dic_ids=dic_ids, dic_names=dic_names, term_ids=term_ids)
+                    dics.save()
+                
+                index_dics = IndexDics.objects.filter(index=index, dics=dics, period=period_obj).first()
+                if not index_dics:
+                    filters += 1
+                    index_dics = IndexDics(index=index, dics=dics, period=period_obj, dates=[])
+                    index_dics.save()
+
+    return {"index_name": index.name, "filters": filters, "info": "справочники загружены"}
