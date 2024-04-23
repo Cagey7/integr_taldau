@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'loader.apps.LoaderConfig',
     'rest_framework',
     'drf_yasg',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [

@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAdminUser
 from drf_yasg.utils import swagger_auto_schema
 from .serializers import *
 from .models import *
@@ -8,6 +9,7 @@ from .utils import *
 
 
 class InsertAllChapters(APIView):
+    permission_classes = (IsAdminUser,)
     def post(self, request):
         catalogs = get_all_catalogs()
         if "status" in catalogs and catalogs["status"] == "error":
@@ -22,6 +24,7 @@ class InsertAllChapters(APIView):
 
 
 class InsertAllPeriods(APIView):
+    permission_classes = (IsAdminUser,)
     def post(self, request):
         periods = get_all_periods()
         if "status" in periods and periods["status"] == "error":
@@ -37,6 +40,7 @@ class InsertAllPeriods(APIView):
     
 
 class InsertAllIndices(APIView):
+    permission_classes = (IsAdminUser,)
     def post(self, request):
         chapters_ids =  ",".join(map(str, Chapter.objects.values_list("id", flat=True)))
         period_ids = ",".join(map(str, IndexPeriod.objects.values_list("id", flat=True)))
@@ -54,6 +58,7 @@ class InsertAllIndices(APIView):
 
 
 class AddOneIndexInfo(APIView):
+    permission_classes = (IsAdminUser,)
     @swagger_auto_schema(request_body=IndexIdFilterSerializer, responses={})
     def post(self, request):
         serializer = IndexIdFilterSerializer(data=request.data)
@@ -69,6 +74,7 @@ class AddOneIndexInfo(APIView):
 
 
 class AddAllIndexInfo(APIView):
+    permission_classes = (IsAdminUser,)
     def post(self, request):
         indices = Index.objects.filter(chapter=None)
         info = []
@@ -80,6 +86,7 @@ class AddAllIndexInfo(APIView):
 
 
 class InsertIndexData(APIView):
+    permission_classes = (IsAdminUser,)
     @swagger_auto_schema(request_body=IndexIdSerializer, responses={})
     def post(self, request):
         serializer = IndexIdSerializer(data=request.data)
@@ -96,6 +103,7 @@ class InsertIndexData(APIView):
 
 
 class InsertIndexDataParam(APIView):
+    permission_classes = (IsAdminUser,)
     @swagger_auto_schema(request_body=IndexInfoSerializer, responses={})
     def post(self, request):
         serializer = IndexInfoSerializer(data=request.data)
