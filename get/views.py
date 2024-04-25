@@ -66,7 +66,7 @@ class GetIndexData(APIView):
         # print(dics_table_name)
         # print(table_name)
         # print(len(dics_table_name))
-        a = select_chapters()
+        # a = select_chapters()
 
         index_data, dics_data = select_index_data(table_name, dics_table_name, dates)
         if not index_data or not dics_data:
