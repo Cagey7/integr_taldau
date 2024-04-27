@@ -266,7 +266,7 @@ def insert_index_data_param(index_dics_data_one):
             time.sleep(2)
             dates = get_index_dates(index_id, period.id, term_ids_str, dic_ids_str)
             if "status" in dates and dates["status"] == "error":
-                return {"index_name": index.name, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": dates["error_code"]}
+                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": dates["error_code"]}
             for date_id, date_name in zip(dates["datesIds"], dates["periodNameList"]):
                 date_id = int(date_id)
                 date_exists = DatePeriod.objects.filter(id=date_id).first()
@@ -274,20 +274,24 @@ def insert_index_data_param(index_dics_data_one):
                     date = DatePeriod(id=date_id, name=date_name, index_period=period)
                     date.save()
             
+            new_dates = []
             index_dics = IndexDics.objects.get(index=index, dics=dic, period=period)
             taldau_dates = [int(date) for date in dates["datesIds"]]
-            new_dates = set(index_dics.dates) ^ set(taldau_dates)
+            for taldau_date in taldau_dates:
+                if taldau_date not in index_dics.dates:
+                    new_dates.append(taldau_date)
+
             if new_dates:
                 index_dics.dates = index_dics.dates + list(new_dates)
                 index_dics.save()
             else:
-                return {"index_name": index.name, "dic_names": dic.dic_names, "period_name": period.name, "info": "нет новых данных"}
-
+                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "нет новых данных"}
+            
             time.sleep(2)
             new_dates_str = ",".join(map(str, new_dates))
             index_values = get_index_data(index_id, period.id, dic_ids_str, new_dates_str)
             if "status" in index_values and index_values["status"] == "error":
-                return {"index_name": index.name, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": index_values["error_code"]}
+                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": index_values["error_code"]}
             for values in index_values:
                 for term_id, term_name, dic_id in zip(values["terms"], values["termNames"], dic_ids):
                     insert_term(cursor, dic_id, int(term_id), term_name)
@@ -301,7 +305,7 @@ def insert_index_data_param(index_dics_data_one):
                     data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
                     insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
     
-    return {"index_name": index.name, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
+    return {"index_name": index.name, "index_id": index.id, "date_ids": new_dates, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
 
 
 def add_one_index_info(index_id, check_filters=False):
@@ -312,12 +316,12 @@ def add_one_index_info(index_id, check_filters=False):
         
         check_index_dics = IndexDics.objects.filter(index=index).first()
         if check_index_dics and not check_filters:
-            return {"index_name": index.name, "info": "справочники уже загружены"}
+            return {"index_name": index.name, "index_id": index.id, "info": "справочники уже загружены"}
         
         time.sleep(2)
         index_info = get_index_attributes(index_id)
         if "status" in index_info and index_info["status"] == "error":
-            return {"index_name": index.name, "info": "ошибка талдау", "error_code": index_info["error_code"]}
+            return {"index_name": index.name, "index_id": index.id, "info": "ошибка талдау", "error_code": index_info["error_code"]}
         
         chapter_id = int(index_info["path"].split("/")[-1])
         chapter = Chapter.objects.get(id=chapter_id)
@@ -327,14 +331,14 @@ def add_one_index_info(index_id, check_filters=False):
         time.sleep(2)
         periods = get_index_periods(index_id)
         if "status" in periods and periods["status"] == "error":
-            return {"index_name": index.name, "info": "ошибка талдау", "error_code": periods["error_code"]}
+            return {"index_name": index.name, "index_id": index.id, "info": "ошибка талдау", "error_code": periods["error_code"]}
         
         for period in periods:
             time.sleep(2)
             period_obj = IndexPeriod.objects.get(id=period["id"])
             segments = get_index_segment(index_id, period["id"])
             if "status" in segments and segments["status"] == "error":
-                return {"index_name": index.name, "info": "ошибка талдау", "error_code": segments["error_code"]}
+                return {"index_name": index.name, "index_id": index.id, "info": "ошибка талдау", "error_code": segments["error_code"]}
             for segment in segments:
                 dic_ids = convert_to_list(segment["dicId"])
                 dic_names = convert_to_list(segment["names"])
@@ -350,4 +354,4 @@ def add_one_index_info(index_id, check_filters=False):
                     index_dics = IndexDics(index=index, dics=dics, period=period_obj, dates=[])
                     index_dics.save()
 
-    return {"index_name": index.name, "filters": filters, "info": "справочники загружены"}
+    return {"index_name": index.name, "index_id": index.id, "filters": filters, "info": "справочники загружены"}
