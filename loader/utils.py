@@ -257,7 +257,17 @@ def insert_index_data_param(index_dics_data_one):
             dates = index_dics_data_one.dates
             dic_ids = dic.dic_ids
             dic_names = dic.dic_names
-            term_ids = dic.term_ids
+            
+            time.sleep(2)
+            segments = get_index_segment(index_id, period.id)
+            if "status" in segments and segments["status"] == "error":
+                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": segments["error_code"]}
+            for segment in segments:
+                dic_ids_seg = convert_to_list(segment["dicId"])
+                if dic_ids_seg == dic_ids:
+                    term_ids = convert_to_list(segment["termIds"])
+                    break
+
             for dic_id, dic_name in zip(dic_ids, dic_names):
                 create_dic_table(cursor, dic_id, dic_name)
             create_index_table(cursor, index_id, period.id, dic_ids, index.name, period.name, dic_names)
@@ -342,10 +352,9 @@ def add_one_index_info(index_id, check_filters=False):
             for segment in segments:
                 dic_ids = convert_to_list(segment["dicId"])
                 dic_names = convert_to_list(segment["names"])
-                term_ids = convert_to_list(segment["termIds"])
                 dics = Dic.objects.filter(dic_ids=dic_ids).first()
                 if not dics:
-                    dics = Dic(dic_ids=dic_ids, dic_names=dic_names, term_ids=term_ids)
+                    dics = Dic(dic_ids=dic_ids, dic_names=dic_names)
                     dics.save()
                 
                 index_dics = IndexDics.objects.filter(index=index, dics=dics, period=period_obj).first()

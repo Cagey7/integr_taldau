@@ -49,7 +49,6 @@ class DatePeriod(models.Model):
 class Dic(models.Model):
     dic_ids = ArrayField(models.IntegerField())
     dic_names = ArrayField(models.CharField(max_length=511))
-    term_ids = ArrayField(models.IntegerField())
 
     class Meta:
         db_table = "dics"
