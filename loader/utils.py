@@ -250,72 +250,75 @@ def insert_index_data(cur, index_id, period_id, dic_ids, data):
 def insert_index_data_param(index_dics_data_one):
     index = index_dics_data_one.index
     index_id = index.id
-    with transaction.atomic():
-        with connection.cursor() as cursor:
-            dic = index_dics_data_one.dics
-            period = index_dics_data_one.period
-            dates = index_dics_data_one.dates
-            dic_ids = dic.dic_ids
-            dic_names = dic.dic_names
-            
-            time.sleep(2)
-            segments = get_index_segment(index_id, period.id)
-            if "status" in segments and segments["status"] == "error":
-                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": segments["error_code"]}
-            for segment in segments:
-                dic_ids_seg = convert_to_list(segment["dicId"])
-                if dic_ids_seg == dic_ids:
-                    term_ids = convert_to_list(segment["termIds"])
-                    break
-
-            for dic_id, dic_name in zip(dic_ids, dic_names):
-                create_dic_table(cursor, dic_id, dic_name)
-            create_index_table(cursor, index_id, period.id, dic_ids, index.name, period.name, dic_names)
-            term_ids_str = ",".join(map(str, term_ids))
-            dic_ids_str = ",".join(map(str, dic_ids))
-            time.sleep(2)
-            dates = get_index_dates(index_id, period.id, term_ids_str, dic_ids_str)
-            if "status" in dates and dates["status"] == "error":
-                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": dates["error_code"]}
-            for date_id, date_name in zip(dates["datesIds"], dates["periodNameList"]):
-                date_id = int(date_id)
-                date_exists = DatePeriod.objects.filter(id=date_id).first()
-                if not date_exists:
-                    date = DatePeriod(id=date_id, name=date_name, index_period=period)
-                    date.save()
-            
-            new_dates = []
-            index_dics = IndexDics.objects.get(index=index, dics=dic, period=period)
-            taldau_dates = [int(date) for date in dates["datesIds"]]
-            for taldau_date in taldau_dates:
-                if taldau_date not in index_dics.dates:
-                    new_dates.append(taldau_date)
-
-            if new_dates:
-                index_dics.dates = index_dics.dates + list(new_dates)
-                index_dics.save()
-            else:
-                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "нет новых данных"}
-            
-            time.sleep(2)
-            new_dates_str = ",".join(map(str, new_dates))
-            index_values = get_index_data(index_id, period.id, dic_ids_str, new_dates_str)
-            if "status" in index_values and index_values["status"] == "error":
-                return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": index_values["error_code"]}
-            for values in index_values:
-                for term_id, term_name, dic_id in zip(values["terms"], values["termNames"], dic_ids):
-                    insert_term(cursor, dic_id, int(term_id), term_name)
-                for val in values["periods"]:
-                    date_now = datetime.now()
-                    taldau_date = datetime.strptime(val["date"], "%d.%m.%Y")
-                    date_period_id = DatePeriod.objects.get(name=val["name"]).id
-                    period_values = get_period_values(period.id, taldau_date)
-                    if val["value"] == "x":
-                        val["value"] = -1
-                    data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
-                    insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
+    dic = index_dics_data_one.dics
+    period = index_dics_data_one.period
+    dates = index_dics_data_one.dates
+    dic_ids = dic.dic_ids
+    dic_names = dic.dic_names
     
-    return {"index_name": index.name, "index_id": index.id, "date_ids": new_dates, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
+    time.sleep(2)
+    segments = get_index_segment(index_id, period.id)
+    if "status" in segments and segments["status"] == "error":
+        return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": segments["error_code"]}
+    for segment in segments:
+        dic_ids_seg = convert_to_list(segment["dicId"])
+        if dic_ids_seg == dic_ids:
+            term_ids = convert_to_list(segment["termIds"])
+            break
+
+    term_ids_str = ",".join(map(str, term_ids))
+    dic_ids_str = ",".join(map(str, dic_ids))
+    added_dates = []
+    while True:
+        time.sleep(2)
+        dates = get_index_dates(index_id, period.id, term_ids_str, dic_ids_str)
+        if "status" in dates and dates["status"] == "error":
+            return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": dates["error_code"]}
+        for date_id, date_name in zip(dates["datesIds"], dates["periodNameList"]):
+            date_id = int(date_id)
+            date_exists = DatePeriod.objects.filter(id=date_id).first()
+            if not date_exists:
+                date = DatePeriod(id=date_id, name=date_name, index_period=period)
+                date.save()
+        
+        new_dates = []
+        index_dics = IndexDics.objects.get(index=index, dics=dic, period=period)
+        taldau_dates = [int(date) for date in dates["datesIds"]]
+        for taldau_date in taldau_dates:
+            if taldau_date not in index_dics.dates:
+                new_dates.append(taldau_date)
+        
+        if new_dates:
+            new_date = new_dates[0]
+            added_dates.append(new_date)
+        else:
+            return {"index_name": index.name, "index_id": index.id, "date_ids": added_dates, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
+        
+        time.sleep(2)
+        index_values = get_index_data(index_id, period.id, dic_ids_str, str(new_date))
+        if "status" in index_values and index_values["status"] == "error":
+            return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": index_values["error_code"]}
+        
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                index_dics.dates = index_dics.dates + [new_date]
+                index_dics.save()
+                
+                for dic_id, dic_name in zip(dic_ids, dic_names):
+                    create_dic_table(cursor, dic_id, dic_name)
+                create_index_table(cursor, index_id, period.id, dic_ids, index.name, period.name, dic_names)
+                for values in index_values:
+                    for term_id, term_name, dic_id in zip(values["terms"], values["termNames"], dic_ids):
+                        insert_term(cursor, dic_id, int(term_id), term_name)
+                    for val in values["periods"]:
+                        date_now = datetime.now()
+                        taldau_date = datetime.strptime(val["date"], "%d.%m.%Y")
+                        date_period_id = DatePeriod.objects.get(name=val["name"]).id
+                        period_values = get_period_values(period.id, taldau_date)
+                        if val["value"] == "x":
+                            val["value"] = -1
+                        data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
+                        insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
 
 
 def add_one_index_info(index_id, check_filters=False):
