@@ -3,6 +3,7 @@ import re
 import time
 from datetime import datetime
 from django.db import connection, transaction
+from django.db.utils import DataError
 from .models import *
 
 
@@ -238,13 +239,21 @@ def insert_index_data(cur, index_id, period_id, dic_ids, data):
     elif period_id == 4 or period_id == 8:
         index_name_period += "year, month,"
 
-
-
     insert_data = """
     INSERT INTO {} (value, date_taldau, created, date_period_id, {} {})
     VALUES ({});
     """.format(index_table_name, index_name_period, insert_dics_list, insert_num_values)
     cur.execute(insert_data, data)
+
+
+def get_dics_info(cur, dic_ids):
+    dics_info = {}
+    for dic_id in dic_ids:
+        get_ids_dic = "SELECT id FROM dics_data.d_{};".format(dic_id)
+        cur.execute(get_ids_dic)
+        ids_dic = [row[0] for row in cur.fetchall()]
+        dics_info[dic_id] = ids_dic
+    return dics_info
 
 
 def insert_index_data_param(index_dics_data_one):
@@ -274,6 +283,7 @@ def insert_index_data_param(index_dics_data_one):
         dates = get_index_dates(index_id, period.id, term_ids_str, dic_ids_str)
         if "status" in dates and dates["status"] == "error":
             return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": dates["error_code"]}
+        
         for date_id, date_name in zip(dates["datesIds"], dates["periodNameList"]):
             date_id = int(date_id)
             date_exists = DatePeriod.objects.filter(id=date_id).first()
@@ -307,18 +317,33 @@ def insert_index_data_param(index_dics_data_one):
                 for dic_id, dic_name in zip(dic_ids, dic_names):
                     create_dic_table(cursor, dic_id, dic_name)
                 create_index_table(cursor, index_id, period.id, dic_ids, index.name, period.name, dic_names)
+                
+                ids_dic = get_dics_info(cursor, dic_ids)
+                
+                date_now = datetime.now()
                 for values in index_values:
-                    for term_id, term_name, dic_id in zip(values["terms"], values["termNames"], dic_ids):
-                        insert_term(cursor, dic_id, int(term_id), term_name)
                     for val in values["periods"]:
-                        date_now = datetime.now()
                         taldau_date = datetime.strptime(val["date"], "%d.%m.%Y")
                         date_period_id = DatePeriod.objects.get(name=val["name"]).id
                         period_values = get_period_values(period.id, taldau_date)
-                        if val["value"] == "x":
-                            val["value"] = -1
-                        data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
-                        insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
+                        break
+                    break
+                        
+                for values in index_values:
+                    for term_id, term_name, dic_id in zip(values["terms"], values["termNames"], dic_ids):
+                        term_id = int(term_id)
+                        if not term_id in ids_dic[dic_id]:
+                            insert_term(cursor, dic_id, term_id, term_name)
+                            ids_dic[dic_id].append(term_id)
+                    
+                    for val in values["periods"]:    
+                        try:
+                            data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
+                            insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
+                        except DataError:
+                            if val["value"] == "x":
+                                data_index_insert = [-1, taldau_date, date_now, date_period_id] + period_values + values["terms"]
+                                insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
 
 
 def add_one_index_info(index_id, check_filters=False):
