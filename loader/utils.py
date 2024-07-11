@@ -304,7 +304,7 @@ def insert_index_data_param(index_dics_data_one):
         else:
             return {"index_name": index.name, "index_id": index.id, "date_ids": added_dates, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
         
-        info_load = f"Началась загрузка данных по index_id-{index_id}, period-{period}, dic_ids-{dic_ids}, new_date-{new_date}. Дат осталось загрузить: {new_dates}."
+        info_load = f"Началась загрузка данных по index_id-{index_id}, period-{period}, dic_ids-{dic_ids}, new_date-{new_date}. Дат осталось загрузить: {len(new_dates)}."
         info_load_log = Logs(info=info_load)
         info_load_log.save()
 
