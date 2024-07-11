@@ -304,8 +304,20 @@ def insert_index_data_param(index_dics_data_one):
         else:
             return {"index_name": index.name, "index_id": index.id, "date_ids": added_dates, "dic_names": dic.dic_names, "period_name": period.name, "info": "загружены актуальные данные"}
         
+        info_load = f"Началась загрузка данных по index_id-{index_id}, period-{period}, dic_ids-{dic_ids}, new_date-{new_date}. Дат осталось загрузить: {new_dates}."
+        info_load_log = Logs(info=info_load)
+        info_load_log.save()
+
         time.sleep(2)
+        start_time = time.time()
         index_values = get_index_data(index_id, period.id, dic_ids_str, str(new_date))
+        end_time = time.time()
+        
+        info_json_time = f"json загрузился за {(end_time - start_time):.2f}"
+        json_time_log = Logs(info=info_json_time)
+        json_time_log.save()
+        
+
         if "status" in index_values and index_values["status"] == "error":
             return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "ошибка талдау", "error_code": index_values["error_code"]}
         
@@ -336,14 +348,17 @@ def insert_index_data_param(index_dics_data_one):
                             insert_term(cursor, dic_id, term_id, term_name)
                             ids_dic[dic_id].append(term_id)
                     
-                    for val in values["periods"]:    
-                        try:
-                            data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
-                            insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
-                        except DataError:
-                            if val["value"] == "x":
-                                data_index_insert = [-1, taldau_date, date_now, date_period_id] + period_values + values["terms"]
-                                insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
+                    for val in values["periods"]:
+                        if val["value"] == "x": 
+                            val["value"] = -1
+
+                        data_index_insert = [val["value"], taldau_date, date_now, date_period_id] + period_values + values["terms"]
+                        insert_index_data(cursor, index_id, period.id, dic_ids, data_index_insert)
+
+                end_time = time.time()
+                info_data_time = f"Данные загрузились за {(end_time - start_time):.2f}"
+                json_data_log = Logs(info=info_data_time)
+                json_data_log.save()
 
 
 def add_one_index_info(index_id, check_filters=False):

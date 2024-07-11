@@ -62,3 +62,9 @@ class IndexDics(models.Model):
 
     class Meta:
         db_table = "indices_dics"
+
+
+class Logs(models.Model):
+    info = models.CharField(max_length=512)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
