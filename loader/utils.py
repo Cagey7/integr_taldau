@@ -275,7 +275,10 @@ def insert_index_data_param(index_dics_data_one):
             term_ids = convert_to_list(segment["termIds"])
             break
 
-    term_ids_str = ",".join(map(str, term_ids))
+    try:
+        term_ids_str = ",".join(map(str, term_ids))
+    except:
+        return {"index_name": index.name, "index_id": index.id, "dic_names": dic.dic_names, "period_name": period.name, "info": "данных фильтров нет в талдау", "error_code": 501}
     dic_ids_str = ",".join(map(str, dic_ids))
     added_dates = []
     while True:
