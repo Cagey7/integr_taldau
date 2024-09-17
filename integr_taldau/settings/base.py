@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'loader.apps.LoaderConfig',
+    'get.apps.GetConfig',
     'rest_framework',
     'drf_yasg',
     'rest_framework.authtoken',
